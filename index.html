@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitPlan AI</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            color: #111827;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: auto;
+            padding: 25px 15px 50px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            font-size: 34px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #6b7280;
+        }
+
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 22px;
+            margin-bottom: 18px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.06);
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 7px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 22px;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: #111827;
+            color: white;
+            font-size: 17px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+        }
+
+        #result {
+            display: none;
+        }
+
+        .plan {
+            line-height: 1.6;
+            white-space: normal;
+        }
+
+        .error {
+            color: #b91c1c;
+            background: #fee2e2;
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .notice {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 15px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>FitPlan AI</h1>
+        <p>Dein persönlicher Trainingsplan</p>
+    </div>
+
+    <div class="card">
+
+        <h2>Deine Daten</h2>
+
+        <label for="age">Alter</label>
+        <input type="number" id="age" placeholder="z. B. 21">
+
+        <label for="height">Größe in cm</label>
+        <input type="number" id="height" placeholder="z. B. 180">
+
+        <label for="weight">Gewicht in kg</label>
+        <input type="number" id="weight" placeholder="z. B. 80">
+
+        <label for="goal">Dein Ziel</label>
+        <select id="goal">
+            <option value="Muskelaufbau">Muskelaufbau</option>
+            <option value="Abnehmen">Abnehmen</option>
+            <option value="Kraft">Kraft</option>
+            <option value="Allgemeine Fitness">Allgemeine Fitness</option>
+        </select>
+
+        <label for="days">Trainingstage pro Woche</label>
+        <select id="days">
+            <option value="2">2 Tage</option>
+            <option value="3">3 Tage</option>
+            <option value="4">4 Tage</option>
+            <option value="5">5 Tage</option>
+            <option value="6">6 Tage</option>
+        </select>
+
+        <label for="location">Wo trainierst du?</label>
+        <select id="location">
+            <option value="Fitnessstudio">Fitnessstudio</option>
+            <option value="Zuhause">Zuhause</option>
+            <option value="Draußen">Draußen</option>
+        </select>
+
+        <label for="equipment">Welches Equipment hast du?</label>
+        <textarea id="equipment"
+            placeholder="z. B. Kurzhanteln, Bank, Klimmzugstange"></textarea>
+
+        <label for="experience">Trainingserfahrung</label>
+        <select id="experience">
+            <option value="Anfänger">Anfänger</option>
+            <option value="Fortgeschritten">Fortgeschritten</option>
+            <option value="Sehr erfahren">Sehr erfahren</option>
+        </select>
+
+        <label for="duration">Trainingsdauer</label>
+        <select id="duration">
+            <option value="30 Minuten">30 Minuten</option>
+            <option value="45 Minuten">45 Minuten</option>
+            <option value="60 Minuten">60 Minuten</option>
+            <option value="90 Minuten">90 Minuten</option>
+        </select>
+
+        <label for="problems">
+            Verletzungen oder Beschwerden
+        </label>
+
+        <textarea id="problems"
+            placeholder="Optional – falls vorhanden"></textarea>
+
+        <button id="generateButton" onclick="generatePlan()">
+            MEINEN TRAININGSPLAN ERSTELLEN
+        </button>
+
+        <div id="error"></div>
+
+        <div class="notice">
+            Der Plan dient nur zu allgemeinen Informationszwecken
+            und ersetzt keine medizinische oder professionelle Beratung.
+        </div>
+
+    </div>
+
+    <div id="loading" class="card">
+        <h3>🤖 Dein Plan wird erstellt...</h3>
+        <p>Das kann einige Sekunden dauern.</p>
+    </div>
+
+    <div id="result" class="card">
+        <h2>Dein Trainingsplan</h2>
+        <div id="plan" class="plan"></div>
+    </div>
+
+</div>
+
+<script>
+
+async function generatePlan() {
+
+    const button = document.getElementById("generateButton");
+    const loading = document.getElementById("loading");
+    const result = document.getElementById("result");
+    const plan = document.getElementById("plan");
+    const error = document.getElementById("error");
+
+    error.innerHTML = "";
+    result.style.display = "none";
+
+    const data = {
+
+        age: document.getElementById("age").value,
+        height: document.getElementById("height").value,
+        weight: document.getElementById("weight").value,
+        goal: document.getElementById("goal").value,
+        days: document.getElementById("days").value,
+        location: document.getElementById("location").value,
+        equipment: document.getElementById("equipment").value,
+        experience: document.getElementById("experience").value,
+        duration: document.getElementById("duration").value,
+        problems: document.getElementById("problems").value
+
+    };
+
+    if (!data.age || !data.height || !data.weight) {
+
+        error.innerHTML =
+            '<div class="error">' +
+            'Bitte Alter, Größe und Gewicht ausfüllen.' +
+            '</div>';
+
+        return;
+    }
+
+    button.disabled = true;
+    loading.style.display = "block";
+
+    try {
+
+        const response = await fetch(
+            "/api/generate",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify(data)
+            }
+        );
+
+        const resultData = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                resultData.error ||
+                "Fehler beim Erstellen des Plans."
+            );
+        }
+
+        plan.innerHTML =
+            resultData.plan.replace(/\n/g, "<br>");
+
+        result.style.display = "block";
+
+        result.scrollIntoView({
+            behavior: "smooth"
+        });
+
+    } catch (err) {
+
+        error.innerHTML =
+            '<div class="error">' +
+            err.message +
+            '</div>';
+
+    } finally {
+
+        button.disabled = false;
+        loading.style.display = "none";
+
+    }
+}
+
+</script>
+
+</body>
+</html>
