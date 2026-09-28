@@ -60,6 +60,7 @@ Bei Beschwerden keine medizinische Diagnose stellen und auf professionelle Berat
         }
 
         const response = await fetch(
+    window.location.origin + "/api/generate",
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
             {
                 method: "POST",
