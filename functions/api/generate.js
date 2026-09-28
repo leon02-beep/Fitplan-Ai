@@ -1,14 +1,11 @@
 export async function onRequestPost(context) {
-
     try {
-
         const data = await context.request.json();
 
         if (!data.age || !data.height || !data.weight) {
-
             return new Response(
                 JSON.stringify({
-                    error: "Bitte fülle Alter, Größe und Gewicht aus."
+                    error: "Bitte Alter, Größe und Gewicht ausfüllen."
                 }),
                 {
                     status: 400,
@@ -20,9 +17,9 @@ export async function onRequestPost(context) {
         }
 
         const prompt = `
-Du bist FitPlan AI, ein digitaler Trainingsplan-Assistent.
+Du bist FitPlan AI, ein professioneller Trainingsplan-Assistent.
 
-Erstelle einen individuellen Trainingsplan anhand dieser Angaben:
+Erstelle auf Deutsch einen individuellen Trainingsplan.
 
 Alter: ${data.age}
 Größe: ${data.height} cm
@@ -33,61 +30,43 @@ Trainingsort: ${data.location}
 Equipment: ${data.equipment || "Kein spezielles Equipment"}
 Erfahrung: ${data.experience}
 Trainingsdauer: ${data.duration}
-Beschwerden/Verletzungen: ${data.problems || "Keine angegeben"}
+Beschwerden: ${data.problems || "Keine angegeben"}
 
-REGELN:
+Erstelle für jeden Trainingstag:
+- Übungen
+- Sätze
+- Wiederholungen
+- Pausen
+- kurze Ausführungserklärung
 
-- Schreibe auf Deutsch.
-- Passe den Plan an Ziel, Erfahrung, Trainingsort und Equipment an.
-- Gib für jede Übung Sätze, Wiederholungen und Pausen an.
-- Erkläre jede Übung kurz.
-- Verwende nur Übungen, die mit dem angegebenen Equipment möglich sind.
-- Übertreibe das Trainingsvolumen nicht.
-- Versprich keine bestimmten Ergebnisse.
-- Stelle keine medizinischen Diagnosen.
-- Bei Verletzungen oder Beschwerden soll die Person professionelle medizinische Beratung einholen.
-
-FORMAT:
-
-# Mein Trainingsplan
-
-## Wochenübersicht
-
-Erkläre kurz den Aufbau der Woche.
-
-## Tag 1
-
-Übung:
-Sätze:
-Wiederholungen:
-Pause:
-Ausführung:
-
-## Tag 2
-
-Übung:
-Sätze:
-Wiederholungen:
-Pause:
-Ausführung:
-
-Erstelle entsprechend der Anzahl der Trainingstage weitere Trainingstage.
-
-## Fortschritt
-
-Erkläre kurz, wie die Belastung sinnvoll gesteigert werden kann.
+Passe den Plan an das vorhandene Equipment an.
+Bei Beschwerden keine medizinische Diagnose stellen und auf professionelle Beratung hinweisen.
 `;
 
+        const apiKey = context.env.GEMINI_API_KEY;
+
+        if (!apiKey) {
+            return new Response(
+                JSON.stringify({
+                    error: "GEMINI_API_KEY wurde nicht gefunden."
+                }),
+                {
+                    status: 500,
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+        }
+
         const response = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
-            context.env.GEMINI_API_KEY,
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
             {
                 method: "POST",
-
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": apiKey
                 },
-
                 body: JSON.stringify({
                     contents: [
                         {
@@ -102,13 +81,15 @@ Erkläre kurz, wie die Belastung sinnvoll gesteigert werden kann.
             }
         );
 
-        if (!response.ok) {
+        const result = await response.json();
 
-            console.error(await response.text());
+        if (!response.ok) {
+            console.error(result);
 
             return new Response(
                 JSON.stringify({
-                    error: "Die KI konnte momentan keinen Trainingsplan erstellen."
+                    error: "Gemini-Fehler: " +
+                        (result.error?.message || "Unbekannter Fehler")
                 }),
                 {
                     status: 500,
@@ -119,16 +100,13 @@ Erkläre kurz, wie die Belastung sinnvoll gesteigert werden kann.
             );
         }
 
-        const result = await response.json();
-
         const generatedText =
             result.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (!generatedText) {
-
             return new Response(
                 JSON.stringify({
-                    error: "Die KI hat keine Antwort geliefert."
+                    error: "Die KI hat keinen Trainingsplan zurückgegeben."
                 }),
                 {
                     status: 500,
@@ -152,12 +130,11 @@ Erkläre kurz, wie die Belastung sinnvoll gesteigert werden kann.
         );
 
     } catch (error) {
-
         console.error(error);
 
         return new Response(
             JSON.stringify({
-                error: "Ein unerwarteter Fehler ist aufgetreten."
+                error: "Serverfehler: " + error.message
             }),
             {
                 status: 500,
