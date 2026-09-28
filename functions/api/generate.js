@@ -1,6 +1,16 @@
 export async function onRequestPost(context) {
     try {
-        const data = await context.request.json();
+        const rawResponse = await response.text();
+
+let resultData;
+
+try {
+    resultData = JSON.parse(rawResponse);
+} catch (e) {
+    throw new Error(
+        "Serverantwort: " + rawResponse.substring(0, 500)
+    );
+}
 
         if (!data.age || !data.height || !data.weight) {
             return new Response(
